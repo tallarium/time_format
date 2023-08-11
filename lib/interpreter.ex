@@ -4,36 +4,36 @@ defmodule TimeFormat.Interpreter do
   alias TimeFormat.Interpreter, as: F
 
   expressions = [
-    awday: quote(do: F.awday(year, month, day) :: 3 - bytes()),
+    awday: quote(do: F.awday(year, month, day)),
     full_wday: quote(do: F.full_wday(year, month, day)),
-    amonth: quote(do: F.amonth(month) :: 3 - bytes()),
-    full_month: quote(do: F.full_month(month) :: 3 - bytes()),
-    zday: quote(do: F.zeroed_int2(day) :: 2 - bytes()),
-    sday: quote(do: F.spaced_int2(day) :: 2 - bytes()),
+    amonth: quote(do: F.amonth(month)),
+    full_month: quote(do: F.full_month(month) :: 3-bytes),
+    zday: quote(do: F.zeroed_int2(day) :: 2-bytes),
+    sday: quote(do: F.spaced_int2(day) :: 2-bytes),
     # This has dynamic size, use the `size(..)` explicitly which is handled by expand_to_simple
-    fractional: quote(do: F.zeroed_int6(microsecond) :: size(precision) - bytes()),
-    iso_year2: quote(do: F.iso_year2(year, month, day) :: 2 - bytes()),
-    iso_year4: quote(do: F.iso_year4(year, month, day) :: 2 - bytes()),
-    hour24: quote(do: F.zeroed_int2(hour) :: 2 - bytes()),
-    spaced_hour24: quote(do: F.spaced_int2(hour) :: 2 - bytes()),
-    hour12: quote(do: F.zeroed_int2(rem(hour, 12)) :: 2 - bytes()),
-    spaced_hour12: quote(do: F.spaced_int2(rem(hour, 12)) :: 2 - bytes()),
-    year_day: quote(do: F.year_day(year, month, day) :: 3 - bytes()),
-    zmonth: quote(do: F.zeroed_int2(month) :: 2 - bytes()),
-    minute: quote(do: F.zeroed_int2(minute) :: 2 - bytes()),
-    am_pm: quote(do: F.am_pm(hour, minute) :: 2 - bytes()),
-    am_pm_lower: quote(do: F.am_pm_lower(hour, minute) :: 2 - bytes()),
-    second: quote(do: F.zeroed_int2(second) :: 2 - bytes()),
-    iso_weekday: quote(do: F.iso_wday(year, month, day) :: 1 - bytes()),
-    week_sun: quote(do: F.week_sun(year, month, day) :: 2 - bytes()),
-    iso_week: quote(do: F.iso_week(year, month, day) :: 2 - bytes()),
-    weekday_sun: quote(do: F.wday_sun(year, month, day) :: 1 - bytes()),
-    week_mon: quote(do: F.week_mon(year, month, day) :: 2 - bytes()),
-    year2: quote(do: F.zeroed_int2(rem(year, 100)) :: 2 - bytes()),
-    year4: quote(do: F.zeroed_int4(year) :: 4 - bytes()),
-    offset: quote(do: F.offset(utc_offset, std_offset) :: 5 - bytes()),
-    offset_ext: quote(do: F.offset_ext(utc_offset, std_offset) :: 6 - bytes()),
-    timezone: quote(do: F.timezone(zone_abbr) :: 3 - bytes())
+    fractional: quote(do: F.zeroed_int6(microsecond) :: size(precision)-bytes),
+    iso_year2: quote(do: F.iso_year2(year, month, day) :: 2-bytes),
+    iso_year4: quote(do: F.iso_year4(year, month, day) :: 2-bytes),
+    hour24: quote(do: F.zeroed_int2(hour) :: 2-bytes),
+    spaced_hour24: quote(do: F.spaced_int2(hour) :: 2-bytes),
+    hour12: quote(do: F.zeroed_int2(rem(hour, 12)) :: 2-bytes),
+    spaced_hour12: quote(do: F.spaced_int2(rem(hour, 12)) :: 2-bytes),
+    year_day: quote(do: F.year_day(year, month, day) :: 3-bytes),
+    zmonth: quote(do: F.zeroed_int2(month) :: 2-bytes),
+    minute: quote(do: F.zeroed_int2(minute) :: 2-bytes),
+    am_pm: quote(do: F.am_pm(hour, minute) :: 2-bytes),
+    am_pm_lower: quote(do: F.am_pm_lower(hour, minute) :: 2-bytes),
+    second: quote(do: F.zeroed_int2(second) :: 2-bytes),
+    iso_weekday: quote(do: F.iso_wday(year, month, day) :: 1-bytes),
+    week_sun: quote(do: F.week_sun(year, month, day) :: 2-bytes),
+    iso_week: quote(do: F.iso_week(year, month, day) :: 2-bytes),
+    weekday_sun: quote(do: F.wday_sun(year, month, day) :: 1-bytes),
+    week_mon: quote(do: F.week_mon(year, month, day) :: 2-bytes),
+    year2: quote(do: F.zeroed_int2(rem(year, 100)) :: 2-bytes),
+    year4: quote(do: F.zeroed_int4(year) :: 4-bytes),
+    offset: quote(do: F.offset(utc_offset, std_offset) :: 5-bytes),
+    offset_ext: quote(do: F.offset_ext(utc_offset, std_offset) :: 6-bytes),
+    timezone: quote(do: F.timezone(zone_abbr) :: 3-bytes)
   ]
 
   complex = [
@@ -66,10 +66,10 @@ defmodule TimeFormat.Interpreter do
 
     def expand_to_simple(name) do
       Enum.map(expand(name), fn
-        {:::, _, [expr, {:-, _, [{:size, _, [size]}, _]}]} ->
+        {:"::", _, [expr, {:-, _, [{:size, _, [size]}, _]}]} ->
           quote(do: binary_part(unquote(expr), 0, unquote(size)))
 
-        {:::, _, [expr, _]} ->
+        {:"::", _, [expr, _]} ->
           expr
 
         expr ->
@@ -91,6 +91,10 @@ defmodule TimeFormat.Interpreter do
           {other, acc}
       end)
       |> elem(1)
+      |> Enum.reject(fn
+        {:bytes, _} -> true
+        _ -> false
+      end)
       |> Enum.uniq_by(fn {name, _} -> name end)
     end
   end
@@ -193,12 +197,12 @@ defmodule TimeFormat.Interpreter do
 
   @doc false
   def iso_wday(year, month, day) do
-    Integer.to_string(Calendar.ISO.day_of_week(year, month, day))
+    Integer.to_string(Calendar.ISO.day_of_week(year, month, day, :default))
   end
 
   @doc false
   def wday_sun(year, month, day) do
-    case Calendar.ISO.day_of_week(year, month, day) do
+    case Calendar.ISO.day_of_week(year, month, day, :default) do
       7 -> "0"
       n -> Integer.to_string(n)
     end
@@ -264,12 +268,12 @@ defmodule TimeFormat.Interpreter do
   end
 
   defp day_of_first_monday(year) do
-    first_wday = Calendar.ISO.day_of_week(year, 1, 1)
+    first_wday = Calendar.ISO.day_of_week(year, 1, 1, :default)
     Integer.mod(1 - first_wday, 7) + 1
   end
 
   defp day_of_first_sunday(year) do
-    7 - Calendar.ISO.day_of_week(year, 1, 1) + 1
+    7 - Calendar.ISO.day_of_week(year, 1, 1, :default) + 1
   end
 
   for {day, idx} <- Enum.with_index(~w[Mon Tue Wed Thu Fri Sat Sun]) do
@@ -300,5 +304,4 @@ defmodule TimeFormat.Interpreter do
   def am_pm_lower(hour, minute) do
     if hour < 12 or (hour == 12 and minute == 0), do: "am", else: "pm"
   end
-
 end

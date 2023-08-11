@@ -7,6 +7,13 @@ defmodule TimeFormatTest do
     @d ~D[2018-06-01]
     @n ~N[2018-06-01 15:45:00]
     @t ~T[15:45:00]
+    @t_leap %Time{
+      calendar: Calendar.ISO,
+      hour: 23,
+      minute: 59,
+      second: 60,
+      microsecond: 0
+    }
     @dt DateTime.from_naive!(@n, "Etc/UTC")
 
     test "%a is short weekday", do: assert(strftime("%a", @d) == "Fri")
@@ -63,7 +70,10 @@ defmodule TimeFormatTest do
 
     test "%S is second in range 00-61" do
       assert(strftime("%S", @t) == "00")
-      assert(strftime("%S", ~T[23:59:60]) == "60")
+
+      assert(
+        strftime("%S", @t_leap) == "60"
+      )
     end
 
     test "%t is a tab character", do: assert(strftime("%t", @t), "\t")

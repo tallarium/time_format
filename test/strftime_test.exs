@@ -26,8 +26,11 @@ defmodule TimeFormat.StrftimeTest do
       assert Macro.to_string(head) ==
                "%{day: day, month: month, year: year, calendar: Calendar.ISO}"
 
-      assert Macro.to_string(body) == """
-             <<F.zeroed_int4(year)::4-bytes(), \"-\", F.zeroed_int2(month)::2-bytes(), \"-\", F.zeroed_int2(day)::2-bytes()>>\
+      assert body
+             |> Code.quoted_to_algebra()
+             |> Inspect.Algebra.format(:infinity)
+             |> IO.iodata_to_binary() == """
+             <<F.zeroed_int4(year)::4-bytes, \"-\", F.zeroed_int2(month)::2-bytes, \"-\", F.zeroed_int2(day)::2-bytes>>\
              """
     end
 
@@ -39,7 +42,7 @@ defmodule TimeFormat.StrftimeTest do
                "%{microsecond: {microsecond, precision}, calendar: Calendar.ISO}"
 
       assert Macro.to_string(body) == """
-             <<F.zeroed_int6(microsecond)::size(precision)-bytes()>>\
+             <<F.zeroed_int6(microsecond)::size(precision)-bytes>>\
              """
     end
   end
